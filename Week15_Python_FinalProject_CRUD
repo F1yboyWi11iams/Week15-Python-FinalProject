@@ -1,0 +1,174 @@
+import sqlite3
+
+def create_db():
+    conn = sqlite3.connect('students.db')
+    cursor = conn.cursor()
+
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS students (student_id INTEGER PRIMARY KEY,
+    full_name TEXT NOT NULL,
+    age INTEGER,
+    gender TEXT,
+    email TEXT,
+    address TEXT,
+    phone TEXT)
+    ''')
+
+    conn.commit()
+    conn.close()
+
+MIN_CHOICE = 1
+MAX_CHOICE = 5
+CREATE = 1
+READ = 2
+UPDATE = 3
+DELETE = 4
+EXIT = 5
+
+def main():
+    choice = 0
+    while choice != EXIT:
+        display_menu()
+        choice = get_menu_choice()
+
+        if choice == CREATE:
+            create()
+        elif choice == READ:
+            read()
+        elif choice == UPDATE:
+            update()
+        elif choice == DELETE:
+            delete()
+
+def display_menu():
+    print('\n----- Student Information Menu -----')
+    print('1. Enter new student information')
+    print('2. Read student information')
+    print('3. Update student information')
+    print('4. Delete student information')
+    print('5. Exit the program')
+
+def get_menu_choice():
+    choice = int(input('Enter your choice: '))
+
+    while choice < MIN_CHOICE or choice > MAX_CHOICE:
+        print(f'Valid choices are {MIN_CHOICE} through {MAX_CHOICE}.')
+        choice = int(input('Enter your choice: '))
+
+    return choice
+
+def create():
+    print('Create New Student Information')
+    student_id = input('Student ID Number: ')
+    full_name = input('Student Full Name: ')
+    age = input('Student Age: ')
+    gender = input('Student Gender at Birth: ')
+    email = input('Student Email: ')
+    address = input('Student Home Address: ')
+    phone = input('Student Phone Number: ')
+    insert_row(student_id, full_name, age, gender, email, address, phone)
+
+def read():
+    student_name = input('Enter a student name to search for: ')
+    num_found = display_item(student_name)
+    print(f'{num_found} row(s) found.')
+
+def update():
+    read()
+
+    student_id = int(input('Select a Student ID: '))
+    full_name = input('Enter the new student full name: ')
+    age = input('Enter the new student age: ')
+    email = input('Enter the new student email: ')
+    address = input('Enter the new student address: ')
+    phone = input('Enter the new student phone number: ')
+
+    num_updated = update_row(student_id, full_name, age, email, address, phone)
+
+def delete():
+    read()
+
+    student_id = int(input('Select student ID to delete: '))
+
+    sure = input("Are you sure you want to delete this student information? (y/n): ")
+    if sure.lower() == 'y':
+        num_deleted = delete_students(student_id)
+        print(f'{num_deleted} Student Information deleted.')
+
+def insert_row(full_name, age, email, address, phone):
+    conn = None
+    try:
+        conn = sqlite3.connect('students.db')
+        cur = conn.cursor()
+        cur.execute('''INSERT INTO students (full_name, age, email, address, phone)
+        VALUES (?, ?, ?, ?, ?, ?)''',
+                    (full_name, age, email, address, phone))
+        conn.commit()
+    except sqlite3.Error as err:
+        print('Database Error', err)
+    finally:
+        if conn != None:
+            conn.close()
+
+def display_item(name):
+    conn = None
+    results = []
+    try:
+        conn = sqlite3.connect('students.db')
+        cur = conn.cursor()
+        cur.execute('''SELECT * FROM students
+        WHERE lower(full_name) == ?''',
+                    (name.lower(),))
+        results = cur.fetchall()
+
+        for row in results:
+            print(f'student_id: {row[0]:<7} full_name: {row[1]:<21} '
+                  f'age: {row[2]:<10} email: {row[3]:<30} address: {row[4]:<14} phone: {row[5]:<42}')
+    except sqlite3.Error as err:
+        print('Database Error', err)
+    finally:
+        if conn != None:
+            conn.close()
+    return len(results)
+
+def update_row(student_id, full_name, age, email, address, phone):
+    conn = None
+    try:
+        conn = sqlite3.connect('students.db')
+        cur = conn.cursor()
+        cur.execute('''UPDATE students
+        SET full_name = ?, age = ?, email = ?, address = ?, phone = ?
+        WHERE student_id == ?''',
+                    (full_name, age, email, address, phone, student_id))
+        conn.commit()
+        num_updated = cur.rowcount
+    except sqlite3.Error as err:
+        print('Database Error', err)
+    finally:
+        if conn != None:
+            conn.close()
+
+    return num_updated
+
+def delete_students(id):
+    conn = None
+    try:
+        conn = sqlite3.connect('students.db')
+        cur = conn.cursor()
+        cur.execute('''DELETE FROM students
+        WHERE full_name == ?''',
+                    (id,))
+        conn.commit()
+        num_deleted = cur.rowcount
+    except sqlite3.Error as err:
+        print('Database Error', err)
+    finally:
+        if conn != None:
+            conn.close()
+
+    return num_deleted
+
+
+
+if __name__ == '__main__':
+    main()
